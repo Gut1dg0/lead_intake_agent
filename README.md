@@ -2,6 +2,12 @@
 
 An AI-powered lead intake system built with CrewAI, FastAPI, and Next.js. It classifies incoming customer leads as hot/warm/cold, generates a personalized suggested response, and emails the JSON object to a configured recipient.
 
+# Live system
+
+The system was deployed using Render (https://render.com/).
+URL of the live system:
+https://lead-intake-agent-frontend.onrender.com/
+
 ## What it does
 
 When a lead is submitted (name, service needed, message), a crew of two AI agents processes it sequentially:
