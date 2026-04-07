@@ -17,12 +17,12 @@ The result is emailed to a configured address.
 - [uv](https://docs.astral.sh/uv/) (`pip install uv`)
 - Node.js 18+ (for the frontend)
 - An Anthropic API key
-- A Resend account for email delivery
+- A SendGrid account for email delivery
 
 
 ## Assumptions
 I used a fake business to personalize the page where the form is displayed. I included a link to the landing page of that same business to make the system look more realistic, as if it was for a real business.
 
-The JSON object used as the final output of the system is emailed to a specific address, thus, imitating what the behavior of the system would be in a real-world scenario, where the output of such a system would be provided to a customer support team via email.
+The JSON object used as the final output of the system is emailed to a specific address, thus, imitating what the behavior of the system would be in a real-world scenario, where the output of such a system would probably be provided to a customer support team via email.
 
 For testing purposes, the JSON object is sent to one of my personal email addresses.

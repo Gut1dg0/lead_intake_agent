@@ -48,16 +48,16 @@ This is a **two-agent, sequential CrewAI crew** exposed via a FastAPI backend an
 3. **Agent 1 — `lead_classifier`**: classifies the lead as `hot/warm/cold` and writes a 1–2 sentence summary.
 4. **Agent 2 — `response_writer`**: takes the classification + summary and drafts a personalized reply, returning a raw JSON object.
 5. The crew's final output is parsed into `LeadAnalysisOutput` (a Pydantic model with `lead_quality`, `summary`, `suggested_response`).
-6. The API emails the analysis to `RECIPIENT_EMAIL` via SMTP and returns `{"status": "sent"}`.
-7. The frontend renders the classification badge, intent summary, and suggested response.
+6. The API emails the JSON analysis to `RECIPIENT_EMAIL` via SendGrid and returns `{"status": "sent"}`.
+7. The frontend shows a success confirmation to the user (the analysis is delivered only via email, not rendered in the UI).
 
 **Key files:**
 - `src/lead_intake_agent/config/agents.yaml` — agent roles, goals, backstories
 - `src/lead_intake_agent/config/tasks.yaml` — task descriptions and expected outputs (uses `{name}`, `{service_needed}`, `{message}` template variables)
 - `src/lead_intake_agent/crew.py` — wires agents → tasks → crew; `draft_response_task` uses `output_pydantic=LeadAnalysisOutput`
 - `src/lead_intake_agent/models.py` — `LeadAnalysisOutput` Pydantic model (the single source of truth for the output schema)
-- `src/lead_intake_agent/api.py` — FastAPI app; falls back to regex-stripping markdown fences and parsing raw JSON if `result.pydantic` is None; sends email via `send_lead_email()` after every successful analysis
-- `frontend/app/page.tsx` — single-page Next.js UI; hardcodes `http://localhost:8000`
+- `src/lead_intake_agent/api.py` — FastAPI app; falls back to regex-stripping markdown fences and parsing raw JSON if `result.pydantic` is None; sends email via `send_lead_email()` using SendGrid after every successful analysis
+- `frontend/app/page.tsx` — single-page Next.js UI; reads API base URL from `NEXT_PUBLIC_API_URL` env var (defaults to `http://localhost:8000`)
 
 ## LLM
 
@@ -72,11 +72,12 @@ Set the following in your shell or a `.env` file (loaded automatically via `pyth
 ANTHROPIC_API_KEY=...
 
 # Required for email notifications (all must be set or the API returns 500)
-SMTP_HOST=...
-SMTP_PORT=587          # optional, defaults to 587
-SMTP_USER=...
-SMTP_PASSWORD=...
+SENDGRID_API_KEY=...
+SENDGRID_FROM=...      # verified sender address in your SendGrid account
 RECIPIENT_EMAIL=...
+
+# Optional
+ALLOWED_ORIGIN=http://localhost:3000   # defaults to http://localhost:3000
 ```
 
-CORS is configured to allow only `http://localhost:3000` for `POST` requests.
+CORS is configured to allow only the origin set in `ALLOWED_ORIGIN` (defaults to `http://localhost:3000`) for `POST` requests.
