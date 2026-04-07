@@ -4,12 +4,10 @@ warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 import json
 import os
 import re
-import smtplib
+import urllib.request
 from dotenv import load_dotenv
 
 load_dotenv()
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -36,24 +34,32 @@ class LeadRequest(BaseModel):
 
 
 def send_lead_email(analysis: LeadAnalysisOutput, lead: LeadRequest) -> None:
-    smtp_host = os.environ["SMTP_HOST"]
-    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    smtp_user = os.environ["SMTP_USER"]
-    smtp_password = os.environ["SMTP_PASSWORD"]
+    api_key = os.environ["RESEND_API_KEY"]
+    sender = os.environ["RESEND_FROM"]       # e.g. "Lead Bot <leads@yourdomain.com>"
     recipient = os.environ["RECIPIENT_EMAIL"]
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"New Lead: {lead.name} — {lead.service_needed}"
-    msg["From"] = smtp_user
-    msg["To"] = recipient
+    body = (
+        f"Lead Quality: {analysis.lead_quality.upper()}\n\n"
+        f"Summary:\n{analysis.summary}\n\n"
+        f"Suggested Response:\n{analysis.suggested_response}"
+    )
 
-    body = json.dumps(analysis.model_dump(), indent=2)
-    msg.attach(MIMEText(body, "plain"))
+    payload = json.dumps({
+        "from": sender,
+        "to": [recipient],
+        "subject": f"New Lead: {lead.name} — {lead.service_needed}",
+        "text": body,
+    }).encode()
 
-    with smtplib.SMTP(smtp_host, smtp_port) as server:
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-        server.sendmail(smtp_user, recipient, msg.as_string())
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req) as resp:
+        if resp.status >= 400:
+            raise RuntimeError(f"Resend API error {resp.status}")
 
 
 @app.post("/analyze-lead")
