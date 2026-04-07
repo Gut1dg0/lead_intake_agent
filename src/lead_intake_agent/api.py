@@ -4,6 +4,7 @@ warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 import json
 import os
 import re
+import urllib.error
 import urllib.request
 from dotenv import load_dotenv
 
@@ -57,9 +58,12 @@ def send_lead_email(analysis: LeadAnalysisOutput, lead: LeadRequest) -> None:
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req) as resp:
-        if resp.status >= 400:
-            raise RuntimeError(f"Resend API error {resp.status}")
+    try:
+        with urllib.request.urlopen(req) as resp:
+            resp.read()
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode(errors="replace")
+        raise RuntimeError(f"Resend {e.code}: {detail}")
 
 
 @app.post("/analyze-lead")
