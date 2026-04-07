@@ -35,8 +35,8 @@ class LeadRequest(BaseModel):
 
 
 def send_lead_email(analysis: LeadAnalysisOutput, lead: LeadRequest) -> None:
-    api_key = os.environ["RESEND_API_KEY"]
-    sender = os.environ["RESEND_FROM"]       # e.g. "Lead Bot <leads@yourdomain.com>"
+    api_key = os.environ["SENDGRID_API_KEY"]
+    sender = os.environ["SENDGRID_FROM"]
     recipient = os.environ["RECIPIENT_EMAIL"]
 
     body = (
@@ -46,14 +46,14 @@ def send_lead_email(analysis: LeadAnalysisOutput, lead: LeadRequest) -> None:
     )
 
     payload = json.dumps({
-        "from": sender,
-        "to": [recipient],
+        "personalizations": [{"to": [{"email": recipient}]}],
+        "from": {"email": sender},
         "subject": f"New Lead: {lead.name} — {lead.service_needed}",
-        "text": body,
+        "content": [{"type": "text/plain", "value": body}],
     }).encode()
 
     req = urllib.request.Request(
-        "https://api.resend.com/emails",
+        "https://api.sendgrid.com/v3/mail/send",
         data=payload,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
@@ -63,7 +63,7 @@ def send_lead_email(analysis: LeadAnalysisOutput, lead: LeadRequest) -> None:
             resp.read()
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")
-        raise RuntimeError(f"Resend {e.code}: {detail}")
+        raise RuntimeError(f"SendGrid {e.code}: {detail}")
 
 
 @app.post("/analyze-lead")
