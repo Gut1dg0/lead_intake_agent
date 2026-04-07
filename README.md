@@ -1,54 +1,110 @@
-# LeadIntakeAgent Crew
+# Lead Intake Agent
 
-Welcome to the LeadIntakeAgent Crew project, powered by [crewAI](https://crewai.com). This template is designed to help you set up a multi-agent AI system with ease, leveraging the powerful and flexible framework provided by crewAI. Our goal is to enable your agents to collaborate effectively on complex tasks, maximizing their collective intelligence and capabilities.
+An AI-powered lead intake system built with [CrewAI](https://crewai.com), FastAPI, and Next.js. It classifies incoming customer leads as hot/warm/cold, generates a personalized suggested response, and emails the analysis to a configured recipient.
 
-## Installation
+## What it does
 
-Ensure you have Python >=3.10 <3.14 installed on your system. This project uses [UV](https://docs.astral.sh/uv/) for dependency management and package handling, offering a seamless setup and execution experience.
+When a lead is submitted (name, service needed, message), two AI agents process it sequentially:
 
-First, if you haven't already, install uv:
+1. **Lead Classifier** — reads the message and assigns a quality tier (`hot`, `warm`, or `cold`) based on urgency, buying intent, and specificity. Produces a 1–2 sentence summary of the customer's need.
+2. **Response Writer** — uses the classification and summary to draft a personalized, tone-matched reply the support team can send directly.
 
-```bash
-pip install uv
-```
+The result is emailed to a configured address and returned to the frontend for display.
 
-Next, navigate to your project directory and install the dependencies:
+## Requirements
 
-(Optional) Lock the dependencies and install them by using the CLI command:
-```bash
-crewai install
-```
-### Customizing
+- Python 3.10–3.13
+- [uv](https://docs.astral.sh/uv/) (`pip install uv`)
+- Node.js 18+ (for the frontend)
+- An Anthropic API key
+- An SMTP account for email delivery
 
-**Add your `OPENAI_API_KEY` into the `.env` file**
+## Setup
 
-- Modify `src/lead_intake_agent/config/agents.yaml` to define your agents
-- Modify `src/lead_intake_agent/config/tasks.yaml` to define your tasks
-- Modify `src/lead_intake_agent/crew.py` to add your own logic, tools and specific args
-- Modify `src/lead_intake_agent/main.py` to add custom inputs for your agents and tasks
-
-## Running the Project
-
-To kickstart your crew of AI agents and begin task execution, run this from the root folder of your project:
+**1. Clone and install backend dependencies**
 
 ```bash
-$ crewai run
+uv sync
 ```
 
-This command initializes the lead_intake_agent Crew, assembling the agents and assigning them tasks as defined in your configuration.
+**2. Configure environment variables**
 
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
+Create a `.env` file in the repo root (loaded automatically at runtime):
 
-## Understanding Your Crew
+```env
+# LLM
+ANTHROPIC_API_KEY=your_anthropic_key
 
-The lead_intake_agent Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
+# Email notifications
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587          # optional, defaults to 587
+SMTP_USER=you@example.com
+SMTP_PASSWORD=your_password
+RECIPIENT_EMAIL=recipient@example.com
+```
 
-## Support
+**3. Install frontend dependencies**
 
-For support, questions, or feedback regarding the LeadIntakeAgent Crew or crewAI.
-- Visit our [documentation](https://docs.crewai.com)
-- Reach out to us through our [GitHub repository](https://github.com/joaomdmoura/crewai)
-- [Join our Discord](https://discord.com/invite/X4JWnZnxPb)
-- [Chat with our docs](https://chatg.pt/DWjSBZn)
+```bash
+cd frontend
+npm install
+```
 
-Let's create wonders together with the power and simplicity of crewAI.
+## Running the system
+
+Start both servers — the frontend proxies to the backend on port 8000.
+
+**Backend (FastAPI)**
+```bash
+uv run serve
+# Listening on http://localhost:8000, auto-reloads on file changes
+```
+
+**Frontend (Next.js)**
+```bash
+cd frontend
+npm run dev
+# Listening on http://localhost:3000
+```
+
+Open `http://localhost:3000`, fill in the lead form, and submit.
+
+### Run the crew locally (no server)
+
+```bash
+uv run lead_intake_agent
+# Runs against a hardcoded sample lead and prints JSON output
+```
+
+### Other commands
+
+```bash
+uv run train
+uv run replay
+uv run test
+```
+
+## API
+
+`POST /analyze-lead`
+
+```json
+{
+  "name": "Jane Doe",
+  "service_needed": "roof repair",
+  "message": "My roof is leaking after last night's storm. Need someone ASAP."
+}
+```
+
+Returns `{"status": "sent"}` on success. The full analysis (`lead_quality`, `summary`, `suggested_response`) is delivered by email.
+
+`GET /health` — returns `{"status": "ok"}`.
+
+## Assumptions
+
+- **SMTP credentials are always required.** There is no fallback — if any of `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, or `RECIPIENT_EMAIL` are missing, the `/analyze-lead` endpoint will return a 500 error even if the crew ran successfully.
+- **The LLM is Claude 3 Haiku** (`anthropic/claude-3-haiku-20240307`). No other model is configured.
+- **CORS is restricted to `http://localhost:3000`.** The backend will reject cross-origin `POST` requests from any other origin.
+- **All three lead fields are required and non-empty.** The API returns 422 if any field is blank.
+- **Sequential crew execution.** The response writer always waits for the classifier to finish; there is no parallelism.
+- **macOS / x86\_64 only.** `pyproject.toml` pins `uv` to `sys_platform == 'darwin' and platform_machine == 'x86_64'`.

@@ -1,17 +1,43 @@
-research_task:
+classify_lead_task:
   description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
-  expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
-  agent: researcher
+    Analyze the following lead submission and classify its quality.
 
-reporting_task:
-  description: >
-    Review the context you got and expand each topic into a full section for a report.
-    Make sure the report is detailed and contains any and all relevant information.
+    Lead Details:
+    - Name: {name}
+    - Service Needed: {service_needed}
+    - Message: {message}
+
+    Classification criteria:
+    - hot: clear urgency, strong buying intent, specific problem, ready to act
+    - warm: genuinely interested, exploring options, moderate urgency
+    - cold: vague inquiry, unclear intent, low urgency, just browsing
+
+    Write a concise 1-2 sentence summary capturing what the customer actually needs
+    and why they reached out.
   expected_output: >
-    A fully fledged report with the main topics, each with a full section of information.
-    Formatted as markdown without '```'
-  agent: reporting_analyst
+    A single word classification (hot, warm, or cold) on the first line, followed
+    by a 1-2 sentence plain-text summary of the customer's intent and needs.
+  agent: lead_classifier
+
+draft_response_task:
+  description: >
+    Using the lead classification and summary from the previous analysis, write a
+    personalized suggested response for the customer support team to send to {name}
+    about their interest in {service_needed}.
+
+    The response must:
+    - Address the customer by their first name
+    - Acknowledge their specific need from the message: "{message}"
+    - Match tone to lead quality (urgent/direct for hot, warm/helpful for warm, informational for cold)
+    - Be professional, human, and actionable
+    - Be 2-4 sentences maximum
+
+    You MUST return a valid JSON object and nothing else. No markdown, no code blocks,
+    no extra text — just the raw JSON object with exactly these three fields:
+    - "lead_quality": one of "hot", "warm", or "cold"
+    - "summary": the 1-2 sentence summary of customer intent
+    - "suggested_response": the personalized response message for the support team
+  expected_output: >
+    A valid raw JSON object with exactly three string fields: lead_quality, summary,
+    and suggested_response. No markdown formatting, no code fences.
+  agent: response_writer

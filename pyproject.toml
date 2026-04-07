@@ -5,12 +5,16 @@ description = "lead_intake_agent using crewAI"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "crewai[tools]==1.3.0"
+    "crewai[anthropic,tools]==1.3.0",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]
 lead_intake_agent = "lead_intake_agent.main:run"
 run_crew = "lead_intake_agent.main:run"
+serve = "lead_intake_agent.api:serve"
 train = "lead_intake_agent.main:train"
 replay = "lead_intake_agent.main:replay"
 test = "lead_intake_agent.main:test"
