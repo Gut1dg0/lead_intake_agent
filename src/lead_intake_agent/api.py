@@ -39,11 +39,11 @@ def send_lead_email(analysis: LeadAnalysisOutput, lead: LeadRequest) -> None:
     sender = os.environ["SENDGRID_FROM"]
     recipient = os.environ["RECIPIENT_EMAIL"]
 
-    body = (
-        f"Lead Quality: {analysis.lead_quality.upper()}\n\n"
-        f"Summary:\n{analysis.summary}\n\n"
-        f"Suggested Response:\n{analysis.suggested_response}"
-    )
+    body = json.dumps({
+        "lead_quality": analysis.lead_quality,
+        "summary": analysis.summary,
+        "suggested_response": analysis.suggested_response,
+    }, indent=2)
 
     payload = json.dumps({
         "personalizations": [{"to": [{"email": recipient}]}],
