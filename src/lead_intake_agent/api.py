@@ -35,7 +35,7 @@ class LeadRequest(BaseModel):
     message: str
 
 
-def send_lead_email(analysis: LeadAnalysisOutput) -> None:
+def send_lead_email(analysis: LeadAnalysisOutput, lead: LeadRequest) -> None:
     smtp_host = os.environ["SMTP_HOST"]
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
     smtp_user = os.environ["SMTP_USER"]
@@ -89,7 +89,7 @@ async def analyze_lead(lead: LeadRequest):
             )
 
     try:
-        send_lead_email(analysis)
+        send_lead_email(analysis, lead)
     except KeyError as e:
         raise HTTPException(status_code=500, detail=f"Email config missing: {e}")
     except Exception as e:
